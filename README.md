@@ -6,7 +6,7 @@ This Python script / Notebook enables you to upload local data to CI360 tables.
 
 This topic contains the following sections:
 * [Configuration](#configuration)
-* [Using the Download Script](#Using-the-Upload/Import-Script)
+* [Using the Download Script](#using-the-upload/import-script)
     * [Considerations](#considerations)
     * [Running the script](#running-the-script)
 * [Contributing](#contributing)
