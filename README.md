@@ -68,11 +68,11 @@ Before starting an upload/import, make a note of the following things:
 
 1. Open a command prompt.
 2. cd into the directory /python_version
-3. run the command $ python import_job
+3. run the command $ python import_job.py
 ---
 **Note:** On Unix-like environments and Macs, the default `py` or `python` command might default to Python 2 if that version is installed. Uninstall earlier versions of Python, or explicitly call Python 3 when you run the script like this example:
 ```
-python3 import_job
+python3 import_job.py
 ```
 
 You can verify which version runs by default with the following command: `python --version`
