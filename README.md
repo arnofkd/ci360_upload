@@ -1,7 +1,7 @@
 #  SAS Customer Intelligence 360 Upload Client: Python
 
 ## Overview
-This Python script / Notebook enables you to upload local data to CI360 tables.
+This Python script / Notebook enables you to upload/import local data to CI360 tables.
  
 
 This topic contains the following sections:
