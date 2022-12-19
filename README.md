@@ -61,8 +61,7 @@ This topic contains the following sections:
 
 ### Considerations
 Before starting an upload/import, make a note of the following things:
-* The script reads a file that must exist in the import_ready_file folder. If you want to reference a different path, you have to edit the variable "abs_file_path" in the import_job.
-* By default, the script is set to read a csv file. You can customize it by editing the variable "json_payload" inside import_job.
+* By default, the script reads a file that must exist in the import_ready_file folder. If you want to reference a custom path, you can edit the path variable in the config.py file.
 
 ### Running the Script
 

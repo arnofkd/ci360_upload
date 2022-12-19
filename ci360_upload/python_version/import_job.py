@@ -20,9 +20,7 @@ token = jwt.encode({'clientID': config.tenantId},
 
 # %% [markdown]
 # Get presigned S3 URL for file upload
-#
 
-# %%
 api_url = f"https://extapigwservice-{config.server}/marketingData/fileTransferLocation"
 headers = {"Content-Type": "application/json",
            "Authorization": f"Bearer {token}"}
@@ -50,17 +48,7 @@ for retry in range(MAX_RETRIES):
 # %% [markdown]
 # Upload file to S3
 
-# %%
-# get current directory of where script is executed
-script_dir = os.path.abspath('')
-
-# create file path
-path = f"import_ready_file/{config.filename}"
-abs_file_path = os.path.join(script_dir, path)
-
-# create payload
-data = open(abs_file_path, 'rb')
-
+data = open(config.filepath, 'rb')
 import_headers = {"Content-Type": "text/csv"}
 
 for retry in range(MAX_RETRIES):
@@ -85,26 +73,14 @@ for retry in range(MAX_RETRIES):
 # %% [markdown]
 # Submit an Import Request Job | https://go.documentation.sas.com/doc/en/cintcdc/production.a/cintag/dat-import-rest-submit.htm
 
-# %%
-json_payload = {
-    "contentName": f"{config.importName}",
-    "dataDescriptorId": "9dc18870-f423-4d87-aeca-b7981f0891f7",
-    "fieldDelimiter": ",",
-    "fileLocation": f"{signedURL}",
-    "fileType": "CSV",
-    "headerRowIncluded": "true",
-    "recordLimit": 0,
-    "updateMode": "upsert"
-}
+config.json_payload['fileLocation'] = f"{signedURL}"
 
-
-# %%
 api_url = f"https://extapigwservice-{config.server}/marketingData/importRequestJobs"
-
 
 for retry in range(MAX_RETRIES):
     try:
-        response = requests.post(api_url, json=json_payload, headers=headers)
+        response = requests.post(
+            api_url, json=config.json_payload, headers=headers)
         if (response.status_code < 400):
             print(response.status_code)
             importId = response.json()['id']
@@ -121,11 +97,9 @@ for retry in range(MAX_RETRIES):
         print(f"{response.status_code} | Request failed with error: {e}")
         break
 
-
 # %% [markdown]
 # Get status of upload
 
-# %%
 status_url = f"https://extapigwservice-{config.server}/marketingData/importRequestJobs/{importId}"
 
 for retry in range(MAX_RETRIES):
@@ -147,6 +121,4 @@ for retry in range(MAX_RETRIES):
         # some other error occurred, break out of the loop
         print(f"{response.status_code} | Request failed with error: {e}")
         break
-
-
 # %%
