@@ -56,9 +56,9 @@ This topic contains the following sections:
     
     filepath = "<desired_path(optional)>"
     
-    json_payload parameters ([Official Documentation](https://go.documentation.sas.com/doc/en/cintcdc/production.a/cintag/dat-import-rest-submit.htm))
+    json_payload parameters 
    ```
-
+([Official Documentation for the JSON payload](https://go.documentation.sas.com/doc/en/cintcdc/production.a/cintag/dat-import-rest-submit.htm))
 
 ## Using the Upload/Import Script
 
