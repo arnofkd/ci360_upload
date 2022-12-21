@@ -1,4 +1,5 @@
-# %%
+# Import libraries and variables from local config file
+
 import base64
 import jwt
 import requests
@@ -6,119 +7,63 @@ import json
 import os
 import config
 import time
+import logging
 
-
-MAX_RETRIES = 3
-# %% [markdown]
 # Create jwtToken
 
-# %%
-encodedSecret = base64.b64encode(bytes(config.secret, 'utf-8'))
+encoded_secret = base64.b64encode(bytes(config.secret, 'utf-8'))
 token = jwt.encode({'clientID': config.tenantId},
-                   encodedSecret, algorithm='HS256')
-# print('\nJWT token: ', token)
+                   encoded_secret, algorithm='HS256')
 
-# %% [markdown]
-# Get presigned S3 URL for file upload
+# Define a helper function to make requests with retries
 
-api_url = f"https://extapigwservice-{config.server}/marketingData/fileTransferLocation"
-headers = {"Content-Type": "application/json",
-           "Authorization": f"Bearer {token}"}
-
-for retry in range(MAX_RETRIES):
-    try:
-        response = requests.post(api_url, headers=headers)
-        if (response.status_code < 400):
-            print(response.status_code)
-            signedURL = response.json()['signedURL']
-            break
-
-    except requests.exceptions.Timeout:
-        # request timed out, retry the request
-        print(
-            f"Request timed out. Retrying (attempt {retry+1} of {MAX_RETRIES})")
-        time.sleep(1)
-
-    except requests.exceptions.RequestException as e:
-        # some other error occurred, break out of the loop
-        print(f"{response.status_code} | Request failed with error: {e}")
-        break
+MAX_NETWORK_RETRIES = 3
 
 
-# %% [markdown]
-# Upload file to S3
-
-data = open(config.filepath, 'rb')
-import_headers = {"Content-Type": "text/csv"}
-
-for retry in range(MAX_RETRIES):
-    try:
-        response = requests.put(signedURL, headers=import_headers, data=data)
-        if (response.status_code < 400):
-            print(response.status_code)
-            break
-
-    except requests.exceptions.Timeout:
-        # request timed out, retry the request
-        print(
-            f"Request timed out. Retrying (attempt {retry+1} of {MAX_RETRIES})")
-        time.sleep(1)
-
-    except requests.exceptions.RequestException as e:
-        # some other error occurred, break out of the loop
-        print(f"{response.status_code} | Request failed with error: {e}")
-        break
+def make_request(method, url, **kwargs):
+    for retry in range(MAX_NETWORK_RETRIES):
+        try:
+            response = method(url, **kwargs)
+            if (response.status_code < 400):
+                print(response.status_code)
+                return response
+        except requests.exceptions.Timeout:
+            print(
+                f"Request timed out. Retrying (attempt {retry+1} of {MAX_NETWORK_RETRIES})")
+            time.sleep(1)
+        except requests.exceptions.RequestException as e:
+            print(f"{response.status_code} | Request failed with error: {e}")
+            logging.error(f"Request failed with error: {e}")
+            raise
 
 
-# %% [markdown]
-# Submit an Import Request Job | https://go.documentation.sas.com/doc/en/cintcdc/production.a/cintag/dat-import-rest-submit.htm
+# Use a session to persist the HTTP connection
 
-config.json_payload['fileLocation'] = f"{signedURL}"
+with requests.Session() as session:
+    # Set the authorization header for all requests made through the session
+    session.headers["Authorization"] = f"Bearer {token}"
+    session.headers["Content-Type"] = "application/json"
 
-api_url = f"https://extapigwservice-{config.server}/marketingData/importRequestJobs"
+    # Make a POST request to get a signed URL for file upload
+    api_url = f"https://extapigwservice-{config.server}/marketingData/fileTransferLocation"
+    response = make_request(session.post, api_url)
+    signed_url = response.json()['signedURL']
 
-for retry in range(MAX_RETRIES):
-    try:
-        response = requests.post(
-            api_url, json=config.json_payload, headers=headers)
-        if (response.status_code < 400):
-            print(response.status_code)
-            importId = response.json()['id']
-            break
+    # Read the file and upload it to the signed URL | Using manual header
+    with open(config.filepath, 'rb') as file:
+        import_headers = {"Content-Type": "text/csv"}
+        make_request(requests.put, signed_url,
+                     headers=import_headers, data=file)
 
-    except requests.exceptions.Timeout:
-        # request timed out, retry the request
-        print(
-            f"Request timed out. Retrying (attempt {retry+1} of {MAX_RETRIES})")
-        time.sleep(1)
+    # Import the uploaded file to your CI360 table
+    config.json_payload['fileLocation'] = f"{signed_url}"
+    api_url = f"https://extapigwservice-{config.server}/marketingData/importRequestJobs"
+    response = make_request(session.post, api_url, json=config.json_payload)
+    import_id = response.json()['id']
 
-    except requests.exceptions.RequestException as e:
-        # some other error occurred, break out of the loop
-        print(f"{response.status_code} | Request failed with error: {e}")
-        break
-
-# %% [markdown]
-# Get status of upload
-
-status_url = f"https://extapigwservice-{config.server}/marketingData/importRequestJobs/{importId}"
-
-for retry in range(MAX_RETRIES):
-    try:
-        response = requests.get(status_url, headers=headers)
-        if (response.status_code < 400):
-            print(response.status_code)
-            print(response.json()["statusDescription"])
-
-            break
-
-    except requests.exceptions.Timeout:
-        # request timed out, retry the request
-        print(
-            f"Request timed out. Retrying (attempt {retry+1} of {MAX_RETRIES})")
-        time.sleep(1)
-
-    except requests.exceptions.RequestException as e:
-        # some other error occurred, break out of the loop
-        print(f"{response.status_code} | Request failed with error: {e}")
-        break
-# %%
+    # Check status of the import request
+    status_url = f"https://extapigwservice-{config.server}/marketingData/importRequestJobs/{import_id}"
+    response = make_request(session.get, status_url)
+    status = response.json()['status']
+    statusDesc = response.json()['statusDescription']
+    print(f"Current status: {status}. Description:{statusDesc}")
