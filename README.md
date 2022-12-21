@@ -53,7 +53,10 @@ This topic contains the following sections:
     TableId = "<table/descriptor_id>"
 
     filename = "<actual_filename.csv>"  
-    importName = "<custom_name_of_importjob>"
+    
+    filepath = "<desired_path(optional)>"
+    
+    json_payload parameters ([Official Documentation](https://go.documentation.sas.com/doc/en/cintcdc/production.a/cintag/dat-import-rest-submit.htm))
    ```
 
 
@@ -91,4 +94,4 @@ This project is licensed under the MIT (LICENSE).
 
 
 ## Additional Resources
-For more information, see [Import Data through the REST API](https://go.documentation.sas.com/doc/en/cintcdc/production.a/cintag/dat-import-rest-toc.html) in the Help Center for SAS Customer Intelligence 360.
+For more information, see [Import Data through the REST API](https://go.documentation.sas.com/doc/en/cintcdc/production.a/cintag/dat-import-rest-toc.htm) in the Help Center for SAS Customer Intelligence 360.
