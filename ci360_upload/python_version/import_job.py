@@ -15,12 +15,13 @@ encoded_secret = base64.b64encode(bytes(config.secret, 'utf-8'))
 token = jwt.encode({'clientID': config.tenantId},
                    encoded_secret, algorithm='HS256')
 
-# Define a helper function to make requests with retries
+# Define a helper function to make requests with retries using exponential backoff (wait_time 3,6,12s)
 
 MAX_NETWORK_RETRIES = 3
 
 
 def make_request(method, url, **kwargs):
+    wait_time = 3
     for retry in range(MAX_NETWORK_RETRIES):
         try:
             response = method(url, **kwargs)
@@ -29,8 +30,9 @@ def make_request(method, url, **kwargs):
                 return response
         except requests.exceptions.Timeout:
             print(
-                f"Request timed out. Retrying (attempt {retry+1} of {MAX_NETWORK_RETRIES})")
-            time.sleep(1)
+                f"Request timed out. Retrying (attempt {retry+1} of {MAX_NETWORK_RETRIES}) in {wait_time} seconds")
+            time.sleep(wait_time)
+            wait_time *= 2
         except requests.exceptions.RequestException as e:
             print(f"{response.status_code} | Request failed with error: {e}")
             logging.error(f"Request failed with error: {e}")
